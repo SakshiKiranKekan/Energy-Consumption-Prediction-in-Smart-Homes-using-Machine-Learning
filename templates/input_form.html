@@ -1,0 +1,244 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Energy Input</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #d4e0d7, #b8cfc0);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .form-wrapper { max-width: 1100px; margin: 0 auto; }
+    .hero-card {
+      background: rgba(255,255,255,0.97);
+      border-radius: 2rem;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.2);
+    }
+    .hero-text h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #1e6f3f, #0a3b2a);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+    .form-card {
+      background: rgba(255,255,255,0.96);
+      border-radius: 2rem;
+      padding: 2rem;
+      box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25);
+    }
+    .basic-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .input-group label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      color: #2c5a44;
+    }
+    .input-group input {
+      padding: 12px 14px;
+      border: 1.5px solid #e2e8e2;
+      border-radius: 1.2rem;
+      font-size: 1rem;
+      transition: 0.2s;
+    }
+    .appliances-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin: 1.5rem 0 1rem;
+      border-left: 5px solid #2c8c5a;
+      padding-left: 16px;
+    }
+    .appliance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px,1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .appliance-card {
+      background: #fafdf9;
+      border-radius: 1.2rem;
+      padding: 1rem;
+      border: 1px solid #e2efea;
+    }
+    .appliance-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .appliance-header input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #2c8c5a;
+    }
+    .appliance-header label {
+      font-weight: 700;
+      flex: 1;
+      cursor: pointer;
+    }
+    .appliance-details {
+      display: none;
+      margin-top: 1rem;
+      border-top: 1px dashed #cde0d6;
+      padding-top: 1rem;
+    }
+    .inline-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.8rem;
+    }
+    .inline-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .inline-field label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #5f7b6e;
+    }
+    .inline-field input {
+      padding: 8px;
+      border-radius: 1rem;
+      border: 1px solid #d0e0d6;
+    }
+    .btn-submit {
+      background: linear-gradient(100deg, #1e6f3f, #0f4d2f);
+      color: white;
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .btn-submit:hover { background: linear-gradient(100deg, #155a34, #0a3b22); transform: translateY(-2px); }
+    @media (max-width: 700px) { .inline-fields { grid-template-columns: 1fr; } body { padding: 1rem; } }
+  </style>
+  <script>
+    function toggleDetails(applianceId) {
+      const cb = document.getElementById(`chk_${applianceId}`);
+      const details = document.getElementById(`details_${applianceId}`);
+      details.style.display = cb.checked ? 'flex' : 'none';
+    }
+
+    // Set default 0 for empty numeric fields before submit (prevents NaN)
+    function sanitizeForm() {
+      const allNumberInputs = document.querySelectorAll('input[type="number"]');
+      allNumberInputs.forEach(input => {
+        if (input.value.trim() === '') input.value = '0';
+      });
+      return true;
+    }
+
+    window.onload = () => {
+      const appliances = {{ appliance_list|safe }};
+      appliances.forEach(app => {
+        const details = document.getElementById(`details_${app}`);
+        if (details) details.style.display = 'none';
+      });
+    };
+  </script>
+</head>
+<body>
+<div class="form-wrapper">
+  <div class="hero-card">
+    <div class="hero-text">
+      <h1><i class="fas fa-microchip"></i> Smart Energy Profiler</h1>
+      <p>Enter your home parameters & appliances → AI consumption forecast</p>
+    </div>
+    <div><i class="fas fa-charging-station"></i> EcoPredict 2.0</div>
+  </div>
+
+  <div class="form-card">
+    <form method="POST" onsubmit="return sanitizeForm()">
+      {% csrf_token %}
+
+      <div class="basic-grid">
+        <div class="input-group">
+          <label><i class="fas fa-thermometer-half"></i> Room Temperature (°C)</label>
+          <input type="number" name="temperature" step="0.1" required>
+        </div>
+        <div class="input-group">
+          <label><i class="fas fa-tint"></i> Humidity (%)</label>
+          <input type="number" name="humidity" step="0.1" required>
+        </div>
+        <div class="input-group">
+          <label><i class="fas fa-users"></i> Number of People</label>
+          <input type="number" name="persons" required>
+        </div>
+        <div class="input-group">
+          <label><i class="fas fa-bullseye"></i> Monthly Target (kWh)</label>
+          <input type="number" name="monthly_target" step="0.1" required>
+        </div>
+      </div>
+
+      <div class="appliances-title">
+        <i class="fas fa-plug"></i> Appliances & Usage
+      </div>
+
+      <div class="appliance-grid">
+        {% for appliance in appliance_list %}
+        <div class="appliance-card">
+          <div class="appliance-header" onclick="document.getElementById('chk_{{ appliance }}').click();">
+            <input type="checkbox" id="chk_{{ appliance }}" name="{{ appliance }}" value="yes" onchange="toggleDetails('{{ appliance }}')">
+            <i class="fas fa-{{ appliance|cut:' '|lower }}"></i>
+            <label for="chk_{{ appliance }}">{{ appliance|title }}</label>
+          </div>
+          <div id="details_{{ appliance }}" class="appliance-details">
+            <div class="inline-fields">
+              <div class="inline-field">
+                <label>Daily usage (hrs)</label>
+                <input type="number" name="{{ appliance }}_usage" step="0.1" value="0">
+              </div>
+              <div class="inline-field">
+                <label>Days used</label>
+                <input type="number" name="{{ appliance }}_days" value="0">
+              </div>
+              <div class="inline-field">
+                <label>Count</label>
+                <input type="number" name="{{ appliance }}_count" value="0">
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn-submit">
+        <i class="fas fa-chart-line"></i> Predict Energy Consumption
+      </button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

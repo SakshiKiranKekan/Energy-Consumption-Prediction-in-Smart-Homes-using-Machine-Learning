@@ -1,0 +1,528 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Smart Energy Insight | Consumption Dashboard</title>
+  <!-- Google Fonts + Font Awesome Icons + Chart.js CDN (no local images required) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0b2b26 0%, #163a2f 100%);
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+      position: relative;
+    }
+
+    /* subtle noise overlay for texture (no image download) */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('https://www.transparenttextures.com/patterns/carbon-fiber.png');
+      opacity: 0.08;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* header & card styling */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(2px);
+      border-radius: 2rem;
+      box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      overflow: hidden;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 30px 50px -14px rgba(0, 0, 0, 0.4);
+    }
+
+    .header-card {
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .logo-area h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      background: linear-gradient(120deg, #1e5a3c, #0f2e24);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-area p {
+      font-size: 0.85rem;
+      color: #5a6e5c;
+      margin-top: 0.2rem;
+    }
+
+    .badge-date {
+      background: #eef2ef;
+      padding: 0.5rem 1.2rem;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #1e4a3b;
+    }
+
+    .badge-date i {
+      margin-right: 8px;
+      color: #2b7a4b;
+    }
+
+    /* kpi row */
+    .kpi-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .kpi-card {
+      flex: 1;
+      min-width: 200px;
+      background: white;
+      border-radius: 1.5rem;
+      padding: 1.2rem 1.5rem;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(0, 0, 0, 0.03);
+      transition: all 0.2s;
+    }
+
+    .kpi-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      color: #5f7b6e;
+      margin-bottom: 0.5rem;
+    }
+
+    .kpi-value {
+      font-size: 2.6rem;
+      font-weight: 800;
+      color: #1f3e34;
+      line-height: 1.1;
+    }
+
+    .kpi-unit {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #6f8b7c;
+    }
+
+    .status-badge {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.2rem 0.8rem;
+      border-radius: 30px;
+      background: #f0f3f1;
+    }
+
+    .alert-danger {
+      background: #ffe6e5;
+      color: #bc3900;
+    }
+
+    .alert-success {
+      background: #e0f2e9;
+      color: #146b3a;
+    }
+
+    /* chart grid */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .chart-card {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 1.5rem 1.2rem 1.8rem 1.2rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+      transition: all 0.2s;
+    }
+
+    .chart-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      padding-left: 0.5rem;
+      border-left: 5px solid #2c8c5a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-title i {
+      color: #2c8c5a;
+      font-size: 1.2rem;
+    }
+
+    canvas {
+      max-height: 320px;
+      width: 100%;
+    }
+
+    /* appliance summary */
+    .insight-footer {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .tip-box {
+      background: #f8faf7;
+      padding: 0.8rem 1.2rem;
+      border-radius: 1rem;
+      flex: 2;
+    }
+
+    .tip-box i {
+      color: #e9a23b;
+      margin-right: 8px;
+    }
+
+    .btn-logout {
+      background: #d94a3c;
+      color: white;
+      border: none;
+      padding: 0.7rem 1.8rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-logout:hover {
+      background: #bc2f1e;
+      transform: scale(1.02);
+    }
+
+    @media (max-width: 750px) {
+      body {
+        padding: 1rem;
+      }
+      .kpi-value {
+        font-size: 2rem;
+      }
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+      .header-card {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      background: #e2e8e4;
+      border-radius: 20px;
+      margin-top: 12px;
+      height: 10px;
+    }
+
+    .progress-fill {
+      height: 10px;
+      border-radius: 20px;
+      background: #2c8c5a;
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- header card -->
+  <div class="glass-card header-card">
+    <div class="logo-area">
+      <h1><i class="fas fa-bolt" style="color:#2b7a4b; margin-right: 8px;"></i>SmartEnergy<span style="font-weight:400"> Forecast</span></h1>
+      <p>AI-driven consumption · Real-time insight</p>
+    </div>
+    <div class="badge-date">
+      <i class="far fa-calendar-alt"></i> 
+      <span id="currentMonth"></span> | 
+      <i class="fas fa-chart-line"></i> Monthly target comparison
+    </div>
+  </div>
+
+  <!-- KPI row with dynamic values -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-title"><i class="fas fa-charging-station"></i> PREDICTED USAGE</div>
+      <div class="kpi-value" id="predictionDisplay">--</div>
+      <div class="kpi-unit">kWh this month</div>
+      <div class="status-badge" id="trendBadge"><i class="fas fa-chart-simple"></i> AI estimation</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title"><i class="fas fa-bullseye"></i> MONTHLY TARGET</div>
+      <div class="kpi-value" id="targetDisplay">--</div>
+      <div class="kpi-unit">kWh (efficient range)</div>
+      <div class="progress-bar-container" style="margin-top:12px">
+        <div class="progress-fill" id="targetProgressFill"></div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title"><i class="fas fa-leaf"></i> EFFICIENCY STATUS</div>
+      <div class="kpi-value" id="statusText">--</div>
+      <div class="kpi-unit" id="statusMessage">Analyzing performance</div>
+    </div>
+  </div>
+
+  <!-- Dynamic charts: bar & pie (no static images, fully interactive) -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">
+        <i class="fas fa-chart-column"></i> 
+        <span>Prediction vs Target (kWh)</span>
+      </div>
+      <canvas id="comparisonBarChart" width="400" height="300" style="max-width:100%; height:auto;"></canvas>
+      <div class="tip-box" style="margin-top: 1rem; background:#f1f5f0;">
+        <i class="fas fa-info-circle"></i> <strong>Insight:</strong> 
+        <span id="insightText">Comparing predicted load with your energy saving goal.</span>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">
+        <i class="fas fa-chart-pie"></i>
+        <span>Appliance-wise breakdown</span>
+      </div>
+      <canvas id="appliancePieChart" width="400" height="300" style="max-width:100%; height:auto;"></canvas>
+      <div class="tip-box" style="margin-top: 1rem; background:#f1f5f0;">
+        <i class="fas fa-microchip"></i> Estimated distribution based on AI model & typical usage patterns.
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer with dynamic tip & logout -->
+  <div class="insight-footer">
+    <div class="tip-box">
+      <i class="fas fa-lightbulb"></i> <strong>Smart suggestion:</strong> 
+      <span id="dynamicTip">Adjusting thermostat by 2°C can reduce HVAC usage by up to 8%.</span>
+    </div>
+    <a href="{% url 'logout' %}" class="btn-logout">
+      <i class="fas fa-sign-out-alt"></i> Logout
+    </a>
+  </div>
+</div>
+
+<script>
+  // Extract Django template variables safely
+  let predictionRaw = "{{ prediction|default:'0' }}";
+  let targetRaw = "{{ target|default:'0' }}";
+  
+  let prediction = parseFloat(predictionRaw);
+  let target = parseFloat(targetRaw);
+  
+  // In case of invalid values, fallback
+  if (isNaN(prediction)) prediction = 0;
+  if (isNaN(target)) target = 0;
+  
+  // Update KPI displays
+  const predictionDisplay = document.getElementById('predictionDisplay');
+  const targetDisplay = document.getElementById('targetDisplay');
+  const targetProgressFill = document.getElementById('targetProgressFill');
+  const statusTextSpan = document.getElementById('statusText');
+  const statusMsgSpan = document.getElementById('statusMessage');
+  const insightSpan = document.getElementById('insightText');
+  const dynamicTipSpan = document.getElementById('dynamicTip');
+  
+  predictionDisplay.innerText = prediction.toFixed(1);
+  targetDisplay.innerText = target.toFixed(1);
+  
+  // Progress bar: fill based on prediction/target ratio (capped at 100%)
+  let ratio = (target > 0) ? (prediction / target) : 0;
+  let fillPercent = Math.min(ratio * 100, 100);
+  targetProgressFill.style.width = fillPercent + '%';
+  
+  // Set color based on efficiency
+  let efficiencyStatus = "";
+  let statusIcon = "";
+  let statusMessage = "";
+  let insightMessage = "";
+  let tipMessage = "";
+  
+  if (target === 0) {
+    efficiencyStatus = "⚠️ No target";
+    statusMessage = "Set a target for better tracking";
+    insightMessage = "Please define a consumption target in your profile.";
+    tipMessage = "Define an achievable monthly energy goal to optimize savings.";
+  } else {
+    let diff = prediction - target;
+    let percentDiff = (diff / target) * 100;
+    if (prediction <= target) {
+      efficiencyStatus = "Excellent ✨";
+      statusMessage = `${(target - prediction).toFixed(1)} kWh below target 🎉`;
+      insightMessage = `Great! Your predicted usage is ${(target - prediction).toFixed(1)} kWh under the target. Keep up the efficient habits.`;
+      tipMessage = "You're on track! Try smart plugs to monitor standby consumption and save even more.";
+    } else {
+      let excess = (prediction - target).toFixed(1);
+      efficiencyStatus = "Needs Attention ⚡";
+      statusMessage = `${excess} kWh above target`;
+      insightMessage = `Prediction exceeds target by ${excess} kWh. Consider adjusting high-consumption appliances.`;
+      tipMessage = "Shift high-energy tasks to off-peak hours and unplug idle devices — could reduce up to 10% load.";
+    }
+  }
+  
+  statusTextSpan.innerHTML = `<i class="fas ${efficiencyStatus.includes('Excellent') ? 'fa-smile-wink' : 'fa-exclamation-triangle'}"></i> ${efficiencyStatus}`;
+  statusMsgSpan.innerText = statusMessage;
+  insightSpan.innerText = insightMessage;
+  dynamicTipSpan.innerText = tipMessage;
+  
+  // ---- Bar Chart: prediction vs target ----
+  const barCtx = document.getElementById('comparisonBarChart').getContext('2d');
+  new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Predicted Consumption', 'Monthly Target'],
+      datasets: [{
+        label: 'Energy (kWh)',
+        data: [prediction, target],
+        backgroundColor: ['#f4a261', '#2c8c5a'],
+        borderRadius: 12,
+        barPercentage: 0.65,
+        categoryPercentage: 0.8,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 12, weight: '500' } } },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(1)} kWh` } }
+      },
+      scales: {
+        y: { 
+          beginAtZero: true, 
+          title: { display: true, text: 'Kilowatt-hour (kWh)', font: { weight: '500' } },
+          grid: { color: '#e9ecef' }
+        },
+        x: { ticks: { font: { weight: '500' } } }
+      }
+    }
+  });
+  
+  // ---- Pie Chart: Appliance-wise usage based on predicted total ----
+  // realistic appliance categories & percentage distribution (relative to total prediction)
+  const applianceLabels = ['HVAC (Heating/Cooling)', 'Water Heater', 'Lighting', 'Refrigerator', 'Entertainment', 'Kitchen & Others'];
+  // percentages based on typical residential consumption patterns
+  const percentages = [32, 18, 12, 16, 10, 12]; // sum = 100%
+  
+  // compute kWh for each appliance based on predicted total
+  let applianceKwh = percentages.map(pct => (prediction * pct / 100));
+  
+  const pieCtx = document.getElementById('appliancePieChart').getContext('2d');
+  new Chart(pieCtx, {
+    type: 'pie',
+    data: {
+      labels: applianceLabels,
+      datasets: [{
+        data: applianceKwh,
+        backgroundColor: ['#e76f51', '#f4a261', '#e9c46a', '#6a994e', '#a7c957', '#bc6c25'],
+        borderWidth: 0,
+        hoverOffset: 8,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 11 }, usePointStyle: true, boxWidth: 10 } },
+        tooltip: {
+          callbacks: {
+            label: (tooltipItem) => {
+              const label = tooltipItem.label || '';
+              const value = tooltipItem.raw;
+              const total = prediction;
+              const percent = ((value / total) * 100).toFixed(1);
+              return `${label}: ${value.toFixed(1)} kWh (${percent}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+  
+  // Additional micro interaction: live month display
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const now = new Date();
+  document.getElementById('currentMonth').innerHTML = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+  
+  // if prediction very high, show extra card animation?
+  if(prediction > target && target > 0){
+    const progressFillEl = document.querySelector('.progress-fill');
+    if(progressFillEl) progressFillEl.style.background = "#e76f51";
+  } else if(prediction <= target && target > 0){
+    const progressFillEl = document.querySelector('.progress-fill');
+    if(progressFillEl) progressFillEl.style.background = "#2c8c5a";
+  }
+</script>
+
+<!-- Optional small style adjust for chart containers -->
+<style>
+  canvas {
+    max-height: 300px;
+    width: 100%;
+  }
+  .kpi-card .progress-bar-container {
+    background: #e2e2df;
+  }
+  .btn-logout {
+    transition: all 0.2s;
+  }
+  .glass-card, .chart-card, .kpi-card, .insight-footer {
+    transition: all 0.2s;
+  }
+  .fa, .fas, .far {
+    pointer-events: none;
+  }
+</style>
+</body>
+</html>
